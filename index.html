@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoCalor - Sistemas de Alerta de Ondas de Calor e Saúde</title>
+
+    <!-- Leaflet CSS -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+        integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+        crossorigin=""
+    />
+
+    <!-- Marker clusterer CSS (pode manter) -->
+    <link rel="stylesheet" href="./dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="./dist/MarkerCluster.Default.css" />
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background-color: #e7f7f6;
+        }
+
+        /* Container geral */
+        .page-container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Container do mapa */
+        .map-container {
+            border: 2px solid #008444;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 40px;
+        }
+
+        #map {
+            width: 100%;
+            height: 90vh; /* não ocupa mais a tela toda */
+        }
+
+        #map2 {
+            width: 100%;
+            height: 70vh;
+        }
+
+        /* Seção de texto */
+        .text-section {
+            margin-bottom: 40px;
+            line-height: 1.6;
+            font-size: 16px;
+            color: #00448d;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Seção da imagem */
+        .image-section img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+            border-radius: 6px;
+        }
+
+        /* Estilos que você já usava */
+        .info {
+            padding: 10px 15px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.8);
+        }
+
+        .info h1 {
+            margin: 0 1 5px;
+            color: #008444;
+        }
+
+        .logo img {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 5px 5px 0px 0px;
+            backdrop-filter: blur(5px);
+            border-radius: 2px;
+        }
+
+        @media screen and (max-width: 500px) {
+            #map {
+                height: 60vh;
+            }
+
+            .text-section {
+                font-size: 14px;
+            }
+
+            .info h1 {
+                font-size: 12px;
+            }
+        }
+        .images-row {
+            display: flex;
+            gap: 20px;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .images-row img {
+            width: 100%;
+            max-width: 32%;
+            height: auto;
+            border-radius: 6px;
+        }
+
+        .pop-risco img {
+            align-items: center;
+        }
+
+        /* Responsivo: empilha no celular */
+        @media screen and (max-width: 768px) {
+            .images-row {
+                flex-direction: column;
+            }
+
+            .images-row img {
+                max-width: 100%;
+            }
+        }
+        /* ==========================
+        CARROSSEL
+        ========================== */
+
+        .carousel-container {
+            width: 100%;
+            max-width: 900px;
+            margin: 30px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .carousel-container img {
+            width: 100%;
+            height: auto;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        /* Botões */
+        .carousel-btn {
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            font-size: 30px;
+            padding: 10px 15px;
+            cursor: pointer;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 4px;
+        }
+
+        .carousel-btn.left {
+            left: -50px;
+        }
+
+        .carousel-btn.right {
+            right: -50px;
+        }
+
+        .carousel-btn:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+        }
+
+        
+        /* ==========================
+        TÍTULO PRINCIPAL
+        ========================== */
+
+        .page-header {
+            width: 100%;
+            padding: 40px 20px 20px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            text-align: center;
+        }
+
+        .header-img {
+            width: 160px;
+            height: auto;
+        }
+
+        @media (max-width: 600px) {
+            .header-img {
+                display: none;
+            }
+        }
+
+        .page-title {
+            color: #00448d;      
+            font-family: "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 2.2rem;
+            font-weight: 600;
+            line-height: 1.3;
+            margin: 0 auto;
+            max-width: 900px;
+            position: relative;
+        }
+
+        .graficos {
+            text-align: center;
+        }
+
+        /* Linha decorativa abaixo do título */
+        .page-title::after {
+            content: "";
+            display: block;
+            width: 80px;
+            height: 4px;
+            background-color: #00448d;
+            margin: 12px auto 0 auto;
+            border-radius: 2px;
+        }
+
+        .graficos {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Responsividade */
+        @media screen and (max-width: 600px) {
+            .page-title {
+                font-size: 1.6rem;
+            }
+        }
+
+        .legend {
+        line-height: 18px;
+        color: #333;
+        background: white;
+        padding: 8px 10px;
+        border-radius: 5px;
+        box-shadow: 0 0 6px rgba(0,0,0,0.3);
+        font-size: 13px;
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+
+
+    </style>
+</head>
+
+<body>
+    <div class="page-container">
+        <header class="page-header">
+            <img src="images/lagasLogo.png" alt="logo do LAGAS" class="header-img left">
+
+            <h1 class="page-title">
+                Sistemas de alerta de ondas de calor e saúde pelo mundo
+            </h1>
+
+            <img src="images/geocalorLogo.png" alt="logo do porjeto GeoCalor" class="header-img right">
+        </header>
+        <div class="text-section">
+            <p>
+                Com a ideia de apoiar o Ministério da Saúde no desenvolvimento de um sistema próprio, nós revisamos em grande detalhe alguns dos principais e mais consolidados sistemas de alerta para ondas de calor e saúde. A partir da leitura dos documentos diretamente ou de artigos que falam sobre esses documentos, construímos os infográficos abaixo resumindo nossos principais achados.
+            </p>
+        </div>
+        <!-- CARROSSEL DE INFOGRÁFICOS -->
+        <div class="carousel-container">
+            <button class="carousel-btn left" onclick="prevImage()">&#10094;</button>
+
+            <img id="carousel-image" 
+                src="images/infografico_1.png" 
+                alt="Infográfico">
+
+            <button class="carousel-btn right" onclick="nextImage()">&#10095;</button>
+        </div>
+        <div class="text-section">
+            <p>
+                Após essa primeira revisão mais detalhada, com o decorrer do nosso projeto, atualizamos a revisão para englobar novos sistemas que foram elaboados em 2025. Você pode ver uma síntese do que descobrimos no mapa e nas figuras abaixo!
+            </p>
+        </div>
+        <!-- MAPA -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <!-- TEXTO -->
+
+        <div class="text-section">
+            <p>
+                Sem dúvidas a Índia é o pais de maior destaque no que diz respeito a sistemas de alerta de ondas de calor e saúde, com 23 documentos identificados. Isso é fruto de um esforço do governo nacional em conjunto com os estaduais de desenvolver plano s de ação espacíficos para cada localidade. No Brasil também identificamos dois planos locais, para os municípios do Rio de Janeiro e de São paulo. Há também o Plano Clima nacional, mas esse documento não entrou na nossa revisão. Nos Estados Unidos também identificam-se esforços locais de criação de documentos, promovidos por agências e governos estadutais e/ou municipais. Outros países como Austrália, Canadá, Espanha e Portugal possuem mais de um documento, mas a maioria possui apenas um plano nacional. Para acessar links e mais informações dos documentos que analisamos, você pode clicar <a href="https://unbbr-my.sharepoint.com/:w:/g/personal/bruno_porto_unb_br/IQDqc4d9VCFcSYo5Dc6FvB0AAZCrzmLGjpv4lQ1p0rvuWSk?e=e4q6kf" target="_blank">aqui!</a>
+            </p>
+        </div>
+
+        <div class="text-section">
+            <p>
+                Ao total, foram identificados 63 documentos, oriundos de 18 países diferentes. A maior parte dos documentos veio da Ásia, Europa e América do Norte, com destaque para a Índia, que possui uma diretriz nacional e indicativo que os municípios devem fazer seu próprio sistema de alerta, gerando um alto número de protocolos.
+            </p>
+        </div>
+
+        <!-- IMAGENS -->
+            <img class="graficos" src="images/continente.png" alt="gráfico por continente">
+            <div class="text-section">
+                <p>
+                    Identificamos que a maioria dos protocolos tem abrangência regional ou local, com um número menor de sistemas nacionais. Portanto, acreditamos que, para o sucesso dessa empreitada, é necessário que surjam sistemas loco-regionais, ainda que haja uma diretiva nacional e apoio do Ministério da Saúde.
+                </p>
+            </div>
+            <img class="graficos" src="images/abrangencia.png" alt="gráfico da área de abrangência dos protocolos">
+            <div class="text-section">
+                <p>
+                    Além disso, faz sentido o Ministério da Saúde e as Secretarias Estaduais de Saúde serem responsáveis pela elaboração do sistema, visto que, em maioria, os protocolos são elaborados pelo órgão de saúde. Ainda assim, pela diversidade apresentada, acreditamos ser fulcrala colaboração entre diferentes órgãos.
+                </p>
+            </div>
+            <img class="graficos" src="images/orgao_responsavel.png" alt="gráfico por órgão responsável">
+
+        <!-- TEXTO -->
+        <div class="text-section">
+            <p>
+                Outros pontos importantes identificados nos protocolos revisados são as populações de risco indicadas pelos protocolos. Como esperado, idosos e crianças aparecem de forma muito frequente. Além disso, foi interessante notar que uma quantidade considerável de protocolos indicam atletas ou pessoas realizando prática desportiva ao livre, bem como usuários de drogas como populações sob maior risco.
+            </p>
+        </div>
+
+        <img src="images/populacoes_risco.png" alt="gráfico por populações de risco" class="graficos">
+
+
+    </div>
+
+    <!-- Leaflet JavaScript -->
+    <script
+        src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+        integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+        crossorigin=""
+    ></script>
+
+    <!-- Marker Clusterer JavaScript -->
+    <script src="./dist/leaflet.markercluster.js"></script>
+
+    <!-- Seu script do mapa -->
+    <script src="leaflet.js"></script>
+
+    <script>
+    let currentIndex = 1;
+    const totalImages = 20;
+
+    function updateImage() {
+        const img = document.getElementById('carousel-image');
+        img.src = `images/infografico_${currentIndex}.png`;
+    }
+
+    function nextImage() {
+        currentIndex++;
+        if (currentIndex > totalImages) {
+            currentIndex = 1;
+        }
+        updateImage();
+    }
+
+    function prevImage() {
+        currentIndex--;
+        if (currentIndex < 1) {
+            currentIndex = totalImages;
+        }
+        updateImage();
+    }
+</script>
+
+</div>
+</body>
+</html>
